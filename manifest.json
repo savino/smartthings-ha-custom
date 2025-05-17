@@ -1,0 +1,35 @@
+{
+  "domain": "smartthings",
+  "name": "SmartThings",
+  "codeowners": ["@savino"],
+  "config_flow": true,
+  "dependencies": ["application_credentials"],
+  "dhcp": [
+    {
+      "hostname": "st*",
+      "macaddress": "24FD5B*"
+    },
+    {
+      "hostname": "smartthings*",
+      "macaddress": "24FD5B*"
+    },
+    {
+      "hostname": "hub*",
+      "macaddress": "24FD5B*"
+    },
+    {
+      "hostname": "hub*",
+      "macaddress": "D052A8*"
+    },
+    {
+      "hostname": "hub*",
+      "macaddress": "286D97*"
+    }
+  ],
+  "documentation": "https://www.home-assistant.io/integrations/smartthings",
+  "issue_tracker": "https://github.com/savino/smartthings-ha-custom/issues",
+  "iot_class": "cloud_push",
+  "loggers": ["pysmartthings"],
+  "requirements": ["pysmartthings==3.0.5"],
+  "version": "1.0.0"
+}
