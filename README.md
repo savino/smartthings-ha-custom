@@ -24,4 +24,4 @@ A fork of the Home Assistant SmartThings Integration. This adds better support f
 - Enjoy!
 
 ## Notes:
-- If you like the integration please star this repository and concider donating or becoming a sponsor.
+- If you like the integration please star this repository and consider donating or becoming a sponsor.
