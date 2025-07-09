@@ -30,6 +30,6 @@
   "issue_tracker": "https://github.com/savino/smartthings-ha-custom/issues",
   "iot_class": "cloud_push",
   "loggers": ["pysmartthings"],
-  "requirements": ["pysmartthings==3.2.4"],
-  "version": "1.1.0"
+  "requirements": ["pysmartthings==3.2.5"],
+  "version": "1.1.1"
 }
