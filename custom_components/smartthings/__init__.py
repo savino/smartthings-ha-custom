@@ -105,7 +105,6 @@ PLATFORMS = [
     Platform.UPDATE,
     Platform.VALVE,
     Platform.WATER_HEATER,
-    "device_tracker",  # For SmartTag and other trackers
 ]
 
 
