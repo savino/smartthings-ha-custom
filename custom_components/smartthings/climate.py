@@ -362,6 +362,7 @@ class SmartThingsThermostat(SmartThingsEntity, ClimateEntity):
 class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
     """Define a SmartThings Air Conditioner."""
 
+    is_faulty_quiet = False
     _attr_name = None
 
     def __init__(self, client: SmartThings, device: FullDevice) -> None:
@@ -587,20 +588,34 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
 
     def _determine_preset_modes(self) -> list[str] | None:
         """Return a list of available preset modes."""
+        model = self._device.status.attributes[Attribute.mnmo].value.split("|")[0]
+
         if self.supports_capability(Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE):
-            return self.get_attribute_value(
+            supported_ac_optional_modes = self.get_attribute_value(
                 Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
                 Attribute.SUPPORTED_AC_OPTIONAL_MODE,
             )
+            if "quiet" not in supported_ac_optional_modes and model == "ARTIK051_PRAC_20K":
+                supported_ac_optional_modes.append("quiet")
+                self.is_faulty_quiet = True
+            return supported_ac_optional_modes
         return None
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set special modes."""
-        await self.execute_device_command(
-            Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
-            Command.SET_AC_OPTIONAL_MODE,
-            argument=preset_mode,
-        )
+        if self.is_faulty_quiet and preset_mode == "quiet":
+            result = await self._device.execute(
+                "mode/convenient/vs/0", {"x.com.samsung.da.modes": "Quiet"}
+            )
+        else:
+            result = await self.execute_device_command(
+                Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
+                Command.SET_AC_OPTIONAL_MODE,
+                argument=preset_mode,
+            )
+        if result:
+            self._device.status.update_attribute_value("acOptionalMode", preset_mode)
+        return result
 
     def _determine_hvac_modes(self) -> list[HVACMode]:
         """Determine the supported HVAC modes."""
