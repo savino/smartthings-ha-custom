@@ -10,7 +10,7 @@ A fork of the Home Assistant SmartThings Integration. This adds better support f
 ## Installation:
 ### HACS
 - Remove your original smartthings integration if you have one set up (optional)
-- Add `https://github.com/veista/smartthings` as a Custom Repository
+- Add `https://github.com/savino/smartthings-ha-custom` as a Custom Repository
 - Install `SmartThings Custom` from the HACS Integrations tab
 - Restart Home Assistant
 - Install `SmartThings` from the HA Integrations tab
