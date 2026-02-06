@@ -14,6 +14,9 @@ from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_LOW,
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
+    PRESET_BOOST,
+    PRESET_NONE,
+    PRESET_SLEEP,
     SWING_BOTH,
     SWING_HORIZONTAL,
     SWING_OFF,
@@ -100,11 +103,11 @@ HEAT_PUMP_AC_MODE_TO_HA = {
 HA_MODE_TO_HEAT_PUMP_AC_MODE = {v: k for k, v in HEAT_PUMP_AC_MODE_TO_HA.items()}
 
 PRESET_MODE_TO_HA = {
-    "off": "off",
+    "off": PRESET_NONE,
     "windFree": "wind_free",
-    "sleep": "sleep",
+    "sleep": PRESET_SLEEP,
     "windFreeSleep": "wind_free_sleep",
-    "speed": "boost",
+    "speed": PRESET_BOOST,
     "quiet": "quiet",
     "longWind": "long_wind",
     "smart": "smart",
