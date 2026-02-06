@@ -99,6 +99,21 @@ HEAT_PUMP_AC_MODE_TO_HA = {
 
 HA_MODE_TO_HEAT_PUMP_AC_MODE = {v: k for k, v in HEAT_PUMP_AC_MODE_TO_HA.items()}
 
+PRESET_MODE_TO_HA = {
+    "off": "off",
+    "windFree": "wind_free",
+    "sleep": "sleep",
+    "windFreeSleep": "wind_free_sleep",
+    "speed": "boost",
+    "quiet": "quiet",
+    "longWind": "long_wind",
+    "smart": "smart",
+    "motionIndirect": "motion_indirect",
+    "motionDirect": "motion_direct",
+}
+
+HA_MODE_TO_PRESET_MODE = {v: k for k, v in PRESET_MODE_TO_HA.items()}
+
 WIND = "wind"
 FAN = "fan"
 
@@ -362,8 +377,9 @@ class SmartThingsThermostat(SmartThingsEntity, ClimateEntity):
 class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
     """Define a SmartThings Air Conditioner."""
 
-    is_faulty_quiet = False
     _attr_name = None
+    _attr_translation_key = "air_conditioner"
+    is_faulty_quiet = False
 
     def __init__(self, client: SmartThings, device: FullDevice) -> None:
         """Init the class."""
@@ -578,12 +594,13 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
 
     @property
     def preset_mode(self) -> str | None:
-        """Return the preset mode."""
+        """Return the current preset mode."""
         if self.supports_capability(Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE):
-            return self.get_attribute_value(
+            mode = self.get_attribute_value(
                 Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
                 Attribute.AC_OPTIONAL_MODE,
             )
+            return PRESET_MODE_TO_HA.get(mode)
         return None
 
     def _determine_preset_modes(self) -> list[str] | None:
@@ -606,48 +623,53 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
         _LOGGER.debug("Device model: '%s' (source: %s)", model, model_source)
 
         if self.supports_capability(Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE):
-            supported_ac_optional_modes = self.get_attribute_value(
+            supported_modes = self.get_attribute_value(
                 Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
                 Attribute.SUPPORTED_AC_OPTIONAL_MODE,
             )
+            # Workaround for ARTIK051_PRAC_20K model that supports quiet mode but doesn't report it
             if (
-                "quiet" not in supported_ac_optional_modes
+                "quiet" not in supported_modes
                 and model == "ARTIK051_PRAC_20K"
             ):
-                supported_ac_optional_modes.append("quiet")
+                supported_modes.append("quiet")
                 self.is_faulty_quiet = True
-            return supported_ac_optional_modes
+                _LOGGER.debug("Added quiet mode for ARTIK051_PRAC_20K")
+            
+            modes = []
+            for mode in supported_modes:
+                if (ha_mode := PRESET_MODE_TO_HA.get(mode)) is not None:
+                    modes.append(ha_mode)
+                else:
+                    _LOGGER.warning(
+                        "Unknown preset mode: %s, please report at https://github.com/home-assistant/core/issues",
+                        mode,
+                    )
+            return modes
         return None
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set special modes."""
-        if self.is_faulty_quiet and preset_mode == "quiet":
-            # Some devices require a raw execute call on the underlying
-            # pysmartthings Device object. The FullDevice is stored as
+        """Set optional AC modes."""
+        preset_mode_raw = HA_MODE_TO_PRESET_MODE[preset_mode]
+        
+        if self.is_faulty_quiet and preset_mode_raw == "quiet":
+            # Workaround for ARTIK051_PRAC_20K: Some devices require a raw execute call
+            # on the underlying pysmartthings Device object. The FullDevice is stored as
             # self.device and the underlying Device is self.device.device.
-            # Use that execute method if available.
-            result = None
             device_obj = getattr(self.device, "device", None)
             if device_obj is not None and hasattr(device_obj, "execute"):
                 result = await device_obj.execute(
                     "mode/convenient/vs/0", {"x.com.samsung.da.modes": "Quiet"}
                 )
-            else:
-                # Fallback to normal command if raw execute is not available
-                result = await self.execute_device_command(
-                    Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
-                    Command.SET_AC_OPTIONAL_MODE,
-                    argument=preset_mode,
-                )
-        else:
-            result = await self.execute_device_command(
-                Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
-                Command.SET_AC_OPTIONAL_MODE,
-                argument=preset_mode,
-            )
-        if result:
-            self.device.status.update_attribute_value("acOptionalMode", preset_mode)
-        return result
+                if result:
+                    self.device.status.update_attribute_value("acOptionalMode", preset_mode_raw)
+                return result
+        
+        await self.execute_device_command(
+            Capability.CUSTOM_AIR_CONDITIONER_OPTIONAL_MODE,
+            Command.SET_AC_OPTIONAL_MODE,
+            argument=preset_mode_raw,
+        )
 
     def _determine_hvac_modes(self) -> list[HVACMode]:
         """Determine the supported HVAC modes."""
